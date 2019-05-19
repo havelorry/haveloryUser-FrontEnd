@@ -1,19 +1,18 @@
 
 import React from "react"
-import {Animated,View,TouchableOpacity,Dimensions,Text,Modal} from "react-native"
+import {Animated,View,TouchableOpacity,Dimensions,Text,Modal,Platform,PermissionsAndroid} from "react-native"
 import {OvalButton, RoundButton} from "../components/ButtonGroup"
 import {connect}  from "react-redux"
 // import Icon from 'react-native-vector-icons/FontAwesome';
 import  Icon from 'react-native-vector-icons/MaterialIcons'
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE,MarkerAnimated } from 'react-native-maps';
 import LocationProvider from "./../components/LocationProvider"
 import {Content, LargeSpace} from './../components/text'
 import {Space} from './../components/ButtonGroup'
 import { TextInput } from "react-native";
 import ModelContext,{ModelConsumer} from './../components/ModelContext'
-
-
-
+import {setLocation} from "./../actions/map/MapActions"
+import { bindActionCreators } from "redux";
 
 function InputRow(props){
     return <View>
@@ -139,7 +138,6 @@ const SearchRow = (props) => (<TouchableOpacity style={searchStyle} onPress={
 </TouchableOpacity>)
 
 
-
 const BottomMenu = (props) => <Animated.View>
     {
         props.mapset ?
@@ -201,6 +199,7 @@ const SetMap = (props) =>(<View>
             </View>
             <Space/>
 
+            <View style={{padding:10}}>
             <RoundButton size={20} color={'#fff'} background={'#8a2be2'} width={'100%'} onPress={
                 ()=>{
                     console.log('Provie Implementatuon here')
@@ -209,16 +208,31 @@ const SetMap = (props) =>(<View>
             }>
                 Set Destination
             </RoundButton>
+            </View>
         </BorderedView>
 
     </View>)
 
 const dims = Dimensions.get('window')
+
+const samplepoints = [
+    {
+        latitude:26.2194700,
+        longitude:78.2058112
+    },
+
+]
+
 class DriverMap extends React.Component{
     constructor(props){
+        x   =   null
+        y   =   null
+
         super(props)
         this.state = {
-            mapset:true
+            mapset:true,
+            errors:null,
+            x,y
         }
         this.toggleMap = this.toggleMap.bind(this)
     }
@@ -228,30 +242,66 @@ class DriverMap extends React.Component{
         this.setState(state=>({...state, mapset:!state.mapset}))
     }
 
+
     render(){
         const {mapset} = this.state
-
+        console.log(this.props)
+                
         return <View style ={{
                         width:dims.width,
                         height:dims.height,
                         justifyContent: 'flex-end',
                         alignItems: 'center'}}>
-                            <MapView
-                            provider={PROVIDER_GOOGLE}
-                            style ={{
-                                width:dims.width,
-                                height:2*(dims.height/3),
-                                justifyContent: 'flex-end',
-                                alignItems: 'center'
-                            }}
-                            region={{
-                                latitude: 28.7041,
-                                longitude: 77.1025,
-                                latitudeDelta: 0.015,
-                                longitudeDelta: 0.0121,
-                            }}
-                            >
-                            </MapView>
+                            
+                            <LocationProvider>
+                                {
+                                    value => (
+                                        value.fetched
+                                        ?
+                                        <MapView
+                                            provider={PROVIDER_GOOGLE}
+                                            style ={{
+                                                width:dims.width,
+                                                height:2*(dims.height/3),
+                                                justifyContent: 'flex-end',
+                                                alignItems: 'center'
+                                            }}
+                                            region={{
+                                                latitude: value.lat,
+                                                longitude: value.lng,
+                                                latitudeDelta: 0.015,
+                                                longitudeDelta: 0.0121,
+                                            }}
+
+                                            onRegionChangeComplete ={
+                                                (region) => {
+                                                    value.c(region)
+                                                }
+                                            }
+                                            >
+                                            
+                                            <MarkerAnimated 
+                                                title={'my location'}
+                                                coordinate={{latitude:value.lat,longitude:value.lng}}
+                                            />
+
+                                            {
+                                                samplepoints.map(
+                                                    ({latitude,longitude},index) =>(<MarkerAnimated 
+                                                        title={'my location'}
+                                                        key={index}
+                                                        coordinate={{latitude,longitude}}
+                                                    />)
+                                                )
+                                            }
+                                        </MapView>
+                                        :
+                                        <Text>
+                                            Loading..
+                                        </Text>
+                                    )
+                                }
+                            </LocationProvider>
         
             { <Animated.View style ={{
                     position:'absolute',
@@ -340,9 +390,13 @@ class DriverMap extends React.Component{
 
 const mapState = (state) => {
     return {
-        network:state.network
+        network:state.network,
+        map:state.map
     }
 }
 
+const mapDispatch = (dispatch) => bindActionCreators({setLocation},dispatch)
 
-export default connect(mapState)(DriverMap)
+export default connect(mapState,mapDispatch)(DriverMap)
+/* 
+ */

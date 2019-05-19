@@ -96,7 +96,7 @@ const Switch = createSwitchNavigator({
     Auth:AuthStack,
     dashboard:Home
 },{
-    initialRouteName:'Auth'
+    initialRouteName:'dashboard'
 })
 
 const Navigator = createAppContainer(Switch)
