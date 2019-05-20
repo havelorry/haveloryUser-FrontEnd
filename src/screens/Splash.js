@@ -9,7 +9,9 @@
 import React, {Component} from 'react';
 import Video from "react-native-video"
 import {Platform, StyleSheet, Text, View, SafeAreaView} from 'react-native';
+import AsyncStorage from "@react-native-community/async-storage"
 import {RoundButton,Link,Group,Space} from "./../components/ButtonGroup"
+import { VIA_LOGIN, VIA_SIGNUP } from '../constants/app';
 
 
 export default class Splash extends Component {
@@ -18,9 +20,16 @@ export default class Splash extends Component {
    header:null  
   }
 
+  componentDidMount(){
+    AsyncStorage.getItem('token').then(t => {
+        if (t != null) {
+          this.props.navigation.navigate('dashboard')
+        } 
+    }).catch(err => console.log(err))
+  }
+
   render() {
     const {navigation} = this.props
-
     return (
       
         <SafeAreaView style={styles.container}>
@@ -44,7 +53,12 @@ export default class Splash extends Component {
         
          <Group>
             <RoundButton color={'#000'} background='#fff' onPress={
-              () => navigation.navigate('login')
+              () => {
+                navigation.setParams({'backLink':'viaSignup'})
+                navigation.navigate('login',{
+                  route:VIA_SIGNUP
+                })
+              }
             }>
               Sign up
             </RoundButton>
@@ -52,7 +66,11 @@ export default class Splash extends Component {
              <Space />
 
             <RoundButton color={'#fff'} onPress={
-              () =>this.props.navigation.navigate("login")
+              () =>{
+                this.props.navigation.navigate("login",{
+                  route:VIA_LOGIN
+                })
+              }
             }>
               Log in
             </RoundButton>

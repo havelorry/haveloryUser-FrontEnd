@@ -251,7 +251,12 @@ class DriverMap extends React.Component{
                         width:dims.width,
                         height:dims.height,
                         justifyContent: 'flex-end',
-                        alignItems: 'center'}}>
+                        alignItems: 'center'}}
+                        
+                        onPress={()=>{
+                            this.props.navigation.toggleDrawer()
+                        }}
+                        >
                             
                             <LocationProvider>
                                 {

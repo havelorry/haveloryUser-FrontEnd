@@ -4,16 +4,20 @@ import {createAppContainer,createSwitchNavigator,createStackNavigator,createDraw
 import Login from "./../screens/Login"
 import Splash from "./../screens/Splash"
 import Verify from "./../screens/Verify"
+import Loader from "./../screens/Loader"
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SideMenu from "./../components/SideMenu"
 import {OvalButton} from "./../components/ButtonGroup"
 import HMapView from "./../screens/HMapView"
+
+
 const AuthStack = createStackNavigator({
+    loader:Loader,
     splash:Splash,
     login:Login ,
     verify:Verify
 },{
-    initialRouteName:'splash',
+    initialRouteName:'loader',
     
 })
 
@@ -96,7 +100,7 @@ const Switch = createSwitchNavigator({
     Auth:AuthStack,
     dashboard:Home
 },{
-    initialRouteName:'dashboard'
+    initialRouteName:'Auth'
 })
 
 const Navigator = createAppContainer(Switch)

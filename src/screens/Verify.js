@@ -5,7 +5,8 @@ import SmoothPinCodeInput from "react-native-smooth-pincode-input"
 import { CircleButton,RoundButton,Link,Space} from "./../components/ButtonGroup"
 import {Content,LargeSpace} from "./../components/text" 
 import {connect} from "react-redux"
-
+import {APP_URL} from "./../constants/API"
+import { API_CALL_REQUEST, API_CALL_SUCCESS, API_CALL_FAILURE } from '../reducers/APIReducer';
 class Verify extends Component {
   constructor(props) {
     super(props);
@@ -33,14 +34,11 @@ class Verify extends Component {
    }
  
   componentWillReceiveProps(nextProps,nextState){
-    const {data} = this.props.network
-    if (data != null) {
-      this.props.navigation.navigate('dashboard')
-    }
+    
   }
 
   render() {
-
+  const {phone} = this.props.navigation.state.params
     return (
       <View style={styles.container}>
         <Content type="heading">
@@ -50,7 +48,7 @@ class Verify extends Component {
         <Space/>
 
         <Content type="basic">
-          Sent to +91 8318338257
+          Sent to +965 {phone || '-----------'}
         </Content>
   
           <Space/>
@@ -103,12 +101,32 @@ class Verify extends Component {
             <View style={{position:'absolute',bottom:15,right:15}} >
               <CircleButton onPress ={
                 () => {
-                  if (this.state.pinValue == "256785") {
-                    this.props.dispatch({type:'API_CALL_REQUEST'})
-                  } else {
-                    Alert.alert('Message','Wrong OTP PIN entered')
-                    this.setState({tokenError:true})
-                  }
+
+                  console.log(this.state.pinValue +" "+" "+this.props.navigation.state.params.phone)
+                  this.props.verifyNumber(
+                    this.props.navigation.state.params.phone,
+                    this.state.pinValue,
+                    (json) => {
+                        const {message,status} =json
+                        if (status) {
+                            this.props.register(this.props.navigation.state.params.phone,(data)=>{
+                                  this.props.login(this.props.navigation.state.params.phone , (data)=>{
+                                    this.props.navigation.navigate('dashboard')
+                                  }, (err)=>{
+                                     console.log(err) 
+                                  })                          
+
+                            },(err)=>{
+                              console.log(err)
+                            })
+                        }else{
+                          Alert.alert('Message',message)
+                        }
+                    },
+                    (err) => {
+                        console.log(err)
+                    }
+                  )
                 }
               } fetching= {this.props.network.fetching}/>
             </View>
@@ -125,7 +143,80 @@ class Verify extends Component {
    }
  }
 
- export default connect(mapStateToProps)(Verify)
+ const mapStateToDispatch = dispatch => {
+   return {
+     verifyNumber:(phone,otp,success,error) => {
+       dispatch({type:API_CALL_REQUEST})
+       const url = `${APP_URL}api/verify_otp/`
+       const data = JSON.stringify({phone,otp})
+       fetch(url,{
+        method:'post',
+        headers:{
+            'Content-Type':'application/json'
+          },
+        body:data
+       }).then(
+         r => r.json()
+       ).then(
+         json => {
+           console.log(json)
+           dispatch({type:API_CALL_SUCCESS,payload:json})
+           success(json)
+         }
+       )
+       .catch(err => {
+         dispatch({type:API_CALL_FAILURE})
+        error(err)
+       })
+
+     },
+     register:(phone, success, error) =>  {
+      dispatch({type:API_CALL_REQUEST})
+      const url = `${APP_URL}api/register/`
+      fetch(url,{
+        method:'post',
+        headers:{
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({phone})
+      }).then(
+        res => res.json()
+      ).then(
+        json => {
+          success(json)
+        }
+      ).catch(err => {
+        error(err)
+        console.log(err)
+      })
+
+    },
+    login:  (phone, success, error) => {
+      dispatch({type:API_CALL_REQUEST})
+      const url = `${APP_URL}api/login/`
+      fetch(url,{
+        method:'post',
+        headers:{
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({phone})
+      }).then(
+        res => {
+          return res.json()
+        }
+      ).then( res =>{
+        dispatch({type:API_CALL_SUCCESS,payload:res})
+        success(res)
+      })
+       .catch(err => {
+         dispatch({type:API_CALL_FAILURE})
+        error(err)
+       })
+    }
+
+   }
+ } 
+ export default connect(mapStateToProps,mapStateToDispatch)(Verify)
 
  const styles = StyleSheet.create({
   container: {
