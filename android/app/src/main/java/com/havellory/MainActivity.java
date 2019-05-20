@@ -18,8 +18,10 @@ public class MainActivity extends ReactActivity {
     }
 
 
+
     protected ReactActivityDelegate createReactActivityDelegate() {
         return new ReactActivityDelegate(this, getMainComponentName()) {
+          System.out.println("DELEGATE");  
           @Override
              protected ReactRootView createRootView() {
                        return new RNGestureHandlerEnabledRootView(MainActivity.this);
