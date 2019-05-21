@@ -9,7 +9,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import SideMenu from "./../components/SideMenu"
 import {OvalButton} from "./../components/ButtonGroup"
 import HMapView from "./../screens/HMapView"
-
+import Settings from './../screens/Settings'
 
 const AuthStack = createStackNavigator({
     loader:Loader,
@@ -19,6 +19,12 @@ const AuthStack = createStackNavigator({
 },{
     initialRouteName:'loader',
     
+})
+
+const settingStack = createStackNavigator({
+    Settings
+},{
+    initialRouteName:'Settings'
 })
 
 
@@ -83,7 +89,7 @@ const Home = createDrawerNavigator({
         }
     },
     Settings:{
-        screen:TestScreen,
+        screen:Settings,
         navigationOptions:{
             drawerLabel:'Settings',
             drawerIcon:({tintColor}) =><Icon name={'cog'} size={20} color={'black'} />

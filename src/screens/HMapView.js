@@ -11,8 +11,11 @@ import {Content, LargeSpace} from './../components/text'
 import {Space} from './../components/ButtonGroup'
 import { TextInput } from "react-native";
 import ModelContext,{ModelConsumer} from './../components/ModelContext'
-import {setLocation} from "./../actions/map/MapActions"
-import { bindActionCreators } from "redux";
+import {API_CALL_FAILURE,API_CALL_REQUEST,API_CALL_SUCCESS} from "./../reducers/APIReducer"
+import {APP_URL} from "./../constants/API"
+import {FETCH_PROFILE} from "./../reducers/ProfileReducer"
+
+import AsyncStorage from "@react-native-community/async-storage"
 
 function InputRow(props){
     return <View>
@@ -243,6 +246,15 @@ class DriverMap extends React.Component{
     }
 
 
+    async componentDidMount(){
+        const token = await AsyncStorage.getItem('token')
+        this.props.fetchProfile(token, async (res)=>{
+            await AsyncStorage.setItem('profile',JSON.stringify(res))
+        },(err)=>{
+            console.log(err)
+        })
+    }
+
     render(){
         const {mapset} = this.state
         console.log(this.props)
@@ -396,12 +408,48 @@ class DriverMap extends React.Component{
 const mapState = (state) => {
     return {
         network:state.network,
-        map:state.map
+        map:state.map,
+        profile:state.profile.profile
     }
 }
 
-const mapDispatch = (dispatch) => bindActionCreators({setLocation},dispatch)
+const mapDispatchToProps = dispatch =>({
+    fetchProfile:(token, success,failure) => {
+        dispatch({type:API_CALL_REQUEST})
+        const url = `${APP_URL}api/profile/`
+        console.log(url)
+        fetch(url,{
+            headers:{
+                'Content-Type':'application/json',
+                'Authorization':`TOKEN ${token}`
+            }
+        }).then(
+            res => res.json()
+        )
+        .catch(err => {
+            failure(err)
+        })
+        .then(
+            json => {
+                dispatch({type:API_CALL_SUCCESS,payload:json})
+                if (json.status) {
+                    dispatch({type:FETCH_PROFILE,payload:json.data})
+                    success(json.data)
+                }else{
+                    console.log('refresh token')
+                }
+            }
+        ).catch(
+            err => {
+                dispatch({type:API_CALL_FAILURE})
+                failure(err)
+            }
+        )
+    }
+})
 
-export default connect(mapState,mapDispatch)(DriverMap)
+// const mapDispatch = (dispatch) => bindActionCreators({setLocation},dispatch)
+
+export default connect(mapState,mapDispatchToProps)(DriverMap)
 /* 
  */
