@@ -1,6 +1,6 @@
 
 import React from "react"
-import {Animated,View,TouchableOpacity,Dimensions,Text,Modal,Platform,PermissionsAndroid} from "react-native"
+import {Animated,View,TouchableOpacity,Dimensions,Text,Modal,Platform,StyleSheet,Image} from "react-native"
 import {OvalButton, RoundButton} from "../components/ButtonGroup"
 import {connect}  from "react-redux"
 // import Icon from 'react-native-vector-icons/FontAwesome';
@@ -12,10 +12,12 @@ import {Space} from './../components/ButtonGroup'
 import { TextInput } from "react-native";
 import ModelContext,{ModelConsumer} from './../components/ModelContext'
 import {API_CALL_FAILURE,API_CALL_REQUEST,API_CALL_SUCCESS} from "./../reducers/APIReducer"
-import {APP_URL} from "./../constants/API"
+import {APP_URL, formatQuery} from "./../constants/API"
 import {FETCH_PROFILE} from "./../reducers/ProfileReducer"
-
+import {withObservableStream} from "./../components/Observe"
 import AsyncStorage from "@react-native-community/async-storage"
+import { SET_CURRENT_LOCATION, SET_DEST, SET_ORIGIN, RESET_SUGGESSTIONS, SET_SUGGESSTIONS } from "../reducers/MAPReducer";
+import {debounce} from "lodash"
 
 function InputRow(props){
     return <View>
@@ -39,6 +41,21 @@ function InputRow(props){
 }
 
 
+const styles = StyleSheet.create({
+    markerFixed: {
+        left: '50%',
+        marginLeft: -24,
+        marginTop: -48,
+        position: 'absolute',
+        top: '30%'
+      },
+      marker: {
+        height: 60,
+        width: 60
+    },
+})
+
+
 function BorderedView(props){
     return <View style ={{
         borderColor:'#eee',
@@ -56,8 +73,20 @@ function BorderedView(props){
 function SearchView(props){
     return <View>
         <BorderedView>
-            <InputRow title={'start'} color={'#8a2be2'} placeholder={'unnamed road'}/>
-            <InputRow title={'end'} color={'#fa2be2'} placeholder={'unnamed road'} />
+            <InputRow title={'start'} color={'#8a2be2'} placeholder={'unnamed road'}
+             callback={
+                 (value) => {
+                     props.queryHandler(value)
+                 }
+             }
+            />
+            <InputRow title={'end'} color={'#fa2be2'} placeholder={'unnamed road'} 
+                callback={
+                    (value) => {
+                        props.queryHandler(value)
+                    }
+                }
+            />
         </BorderedView>
     </View>
 }
@@ -100,9 +129,9 @@ function AppModel(props){
 
 const rowStyle = {
     paddingTop:20,
-    paddingLeft:10,
+    paddingHorizontal:10,
     flexDirection:'row',
-    alignItems:'center'
+    alignItems:'center',
 }
 
 const searchStyle = {
@@ -118,11 +147,30 @@ const IconRow = (props) => (<TouchableOpacity style={rowStyle} onPress={props.ca
     <View style={{backgroundColor:'#fe2be2',borderRadius:30,width:30,height:30, justifyContent:'center',alignItems:'center'}}>
         <Icon name={props.icon} color={'#fff'} size={20} style={{fontWeight:'normal'}}/>
     </View>
-    <Text style={{paddingLeft:10, fontWeight:'normal', fontSize:15, color:'#000'}}>
+    <Text style={{paddingHorizontal:10, fontWeight:'normal', fontSize:15, color:'#000'}}>
         {props.title}
     </Text>
 </TouchableOpacity>)
 
+
+const SuggessionView = (props) => <View>
+    {
+        props.suggessions && props.suggessions.map(
+            loc => <IconRow icon={'map'} title={loc.description} callback={
+                ()=>{
+                    console.log(props.dispatch({type:RESET_SUGGESSTIONS}))
+                }
+            }/>
+        )
+    }    
+</View>
+
+
+const Suggessions = connect((state)=>({
+                    suggessions:state.map.suggessions
+                    }),
+    
+                )(SuggessionView)
 
 const SearchRow = (props) => (<TouchableOpacity style={searchStyle} onPress={
     ()=>{
@@ -141,10 +189,26 @@ const SearchRow = (props) => (<TouchableOpacity style={searchStyle} onPress={
 </TouchableOpacity>)
 
 
+function CheckoutView(props){
+    return  <View style={{justifyContent:'center',alignItems:'center'}}>
+              <Text>
+                Checkout
+            </Text>
+    </View>
+}
+
 const BottomMenu = (props) => <Animated.View>
     {
         props.mapset ?
-        <SetMap />
+        props.bothSet
+        ?
+        <CheckoutView />
+        :
+        props.originSet
+        ?
+        <SetMap buttonTitle={'Set Destination'} actionType={SET_DEST}/>
+        :
+        <SetMap buttonTitle={'Set Origin'} actionType={SET_ORIGIN}/>
         :
         <ModelConsumer>
      {
@@ -184,9 +248,33 @@ const BottomMenu = (props) => <Animated.View>
     }
 </Animated.View>
 
-const SetMap = (props) =>(<View>
+const MapProps = (state) =>{
+    const map = state.map
+    const {origin,destination,current} = map;
+    const originSet =origin.set != null ? true:false
+    const destinationSet = destination.set != null?true:false
+
+    return {
+        origin,
+        destination,
+        originSet,
+        destinationSet,
+        bothSet:origin && destinationSet,
+        current
+    }
+}
+
+const DispatchMapProps = (dispatch) => ({
+    setLocation:(type,payload) => dispatch({type,payload})
+})
+
+
+function SetMapView(props){
+    console.log(props)
+
+    return (<View>
         <Content type={'heading'}>
-            Set Destination
+            {props.buttonTitle}
         </Content>
         <Space/>
         <Space/>
@@ -196,7 +284,7 @@ const SetMap = (props) =>(<View>
             <View style={{marginLeft:20}}>
                 <Text>Location</Text>
                 <Text style={{fontSize:16,fontWeight:'bold'}}>
-                    Unnamed Location
+                    {JSON.stringify(props.current)}
                 </Text>    
             </View>
             </View>
@@ -205,16 +293,30 @@ const SetMap = (props) =>(<View>
             <View style={{padding:10}}>
             <RoundButton size={20} color={'#fff'} background={'#8a2be2'} width={'100%'} onPress={
                 ()=>{
-                    console.log('Provie Implementatuon here')
-                    
+                    console.log(props.actionType)
+                    const {latitude,longitude} = props.current
+
+                    props.setLocation(props.actionType,{
+                        text:"",
+                        coords:{
+                            latitude,
+                            longitude
+                        },
+                        set:true
+                    })
                 }
             }>
-                Set Destination
+                {props.buttonTitle}
             </RoundButton>
             </View>
         </BorderedView>
 
     </View>)
+}
+
+
+
+const SetMap = connect(MapProps,DispatchMapProps)(SetMapView)
 
 const dims = Dimensions.get('window')
 
@@ -226,6 +328,8 @@ const samplepoints = [
 
 ]
 
+const marker = require('./../assets/marker.png')
+
 class DriverMap extends React.Component{
     constructor(props){
         x   =   null
@@ -233,11 +337,15 @@ class DriverMap extends React.Component{
 
         super(props)
         this.state = {
-            mapset:true,
+            mapset:false,
             errors:null,
-            x,y
+            x,y,
+            originSet:false,
+            dstSet:false
         }
         this.toggleMap = this.toggleMap.bind(this)
+        this.fetchQueries = this.fetchQueries.bind(this)
+        this.delayQueries = debounce(this.fetchQueries,1000)
     }
 
 
@@ -245,6 +353,22 @@ class DriverMap extends React.Component{
         this.setState(state=>({...state, mapset:!state.mapset}))
     }
 
+    fetchQueries(value){
+        if (value.length> 0) {
+            
+            fetch(formatQuery(value)).then(
+                r => r.json()
+            ).catch(err => console.log(err))
+             .then(json => {
+                 const suggesstions = json.predictions.map(({description,id})=>({description,id}))
+                this.props.dispatch({
+                    type:SET_SUGGESSTIONS,
+                    payload:suggesstions
+                })
+             })
+             .catch(err => console.log(err))
+        }   
+    }
 
     async componentDidMount(){
         const token = await AsyncStorage.getItem('token')
@@ -275,7 +399,10 @@ class DriverMap extends React.Component{
                                     value => (
                                         value.fetched
                                         ?
-                                        <MapView
+                                        <React.Fragment>
+
+                                            <MapView
+                                            pointerEvents={'none'}
                                             provider={PROVIDER_GOOGLE}
                                             style ={{
                                                 width:dims.width,
@@ -293,25 +420,16 @@ class DriverMap extends React.Component{
                                             onRegionChangeComplete ={
                                                 (region) => {
                                                     value.c(region)
+                                                    this.props.setCurrentLocation(region.latitude.toFixed(3), region.longitude.toFixed(3))
                                                 }
                                             }
-                                            >
-                                            
-                                            <MarkerAnimated 
-                                                title={'my location'}
-                                                coordinate={{latitude:value.lat,longitude:value.lng}}
                                             />
-
-                                            {
-                                                samplepoints.map(
-                                                    ({latitude,longitude},index) =>(<MarkerAnimated 
-                                                        title={'my location'}
-                                                        key={index}
-                                                        coordinate={{latitude,longitude}}
-                                                    />)
-                                                )
-                                            }
-                                        </MapView>
+                                            
+                                            <View style={styles.markerFixed}>    
+                                                <Image style={styles.marker} source={marker} />
+                                            </View>
+                                        </React.Fragment>
+                                            
                                         :
                                         <Text>
                                             Loading..
@@ -366,7 +484,13 @@ class DriverMap extends React.Component{
                 }}>
             
                   {<OvalButton size={50} onPress={
-                        ()=>this.toggleMap()
+                        ()=>{
+                            this.toggleMap();
+                            this.setState({
+                                ...this.state,
+                                mapset:true
+                            })
+                        }
                         
                     } bg="#fff" >
                         <Icon name="my-location" color="#000" size={20}/>
@@ -381,18 +505,22 @@ class DriverMap extends React.Component{
                 }}>
                 <BottomMenu mapset={mapset} enableMap= {
                     ()=> this.toggleMap()
-                }/>
+                } 
+                
+                {...this.props}
+                />
 
                 
                     <ModelConsumer>
                         {
                             value => (
                                 <AppModel visible={value.open} close={value.toggle}>
-                                    <SearchView />
+                                    <SearchView queryHandler={this.delayQueries}/>
                                     <IconRow 
                                         icon={'home'}
                                         title={'Home'}
                                         />
+                                    <Suggessions/>
                                 </AppModel>
                             )
                         }
@@ -406,10 +534,18 @@ class DriverMap extends React.Component{
 }
 
 const mapState = (state) => {
+   
+    const {origin,destination,} = state.map;
+    const originSet =origin.set
+    const destinationSet = destination.set
+    const bothSet = originSet && destinationSet
     return {
         network:state.network,
         map:state.map,
-        profile:state.profile.profile
+        profile:state.profile.profile,
+        originSet,
+        destinationSet,
+        bothSet
     }
 }
 
@@ -445,7 +581,15 @@ const mapDispatchToProps = dispatch =>({
                 failure(err)
             }
         )
-    }
+    },
+
+    setCurrentLocation:(lat,lng) => dispatch({
+        type:SET_CURRENT_LOCATION,
+        payload:{
+            lat,lng
+        }
+    }),
+    dispatch
 })
 
 // const mapDispatch = (dispatch) => bindActionCreators({setLocation},dispatch)
