@@ -1,6 +1,6 @@
 
 import React from "react"
-import {Animated,View,TouchableOpacity,Dimensions,Text,Modal,Platform,StyleSheet,Image} from "react-native"
+import {Animated,View,TouchableOpacity,Dimensions,Text,Modal,Easing,StyleSheet,Image} from "react-native"
 import {OvalButton, RoundButton} from "../components/ButtonGroup"
 import {connect}  from "react-redux"
 // import Icon from 'react-native-vector-icons/FontAwesome';
@@ -12,7 +12,7 @@ import {Space} from './../components/ButtonGroup'
 import { TextInput } from "react-native";
 import ModelContext,{ModelConsumer} from './../components/ModelContext'
 import {API_CALL_FAILURE,API_CALL_REQUEST,API_CALL_SUCCESS} from "./../reducers/APIReducer"
-import {APP_URL, formatQuery} from "./../constants/API"
+import {APP_URL, formatQuery, formatCoordinates, placeIdToCoordinates} from "./../constants/API"
 import {FETCH_PROFILE} from "./../reducers/ProfileReducer"
 import {withObservableStream} from "./../components/Observe"
 import AsyncStorage from "@react-native-community/async-storage"
@@ -158,7 +158,8 @@ const SuggessionView = (props) => <View>
         props.suggessions && props.suggessions.map(
             loc => <IconRow icon={'map'} title={loc.description} callback={
                 ()=>{
-                    console.log(props.dispatch({type:RESET_SUGGESSTIONS}))
+                    const placeId = placeIdToCoordinates(loc.id)
+                    props.handler(placeId,loc.description,props.originSet)
                 }
             }/>
         )
@@ -190,14 +191,24 @@ const SearchRow = (props) => (<TouchableOpacity style={searchStyle} onPress={
 
 
 function CheckoutView(props){
-    return  <View style={{justifyContent:'center',alignItems:'center'}}>
-              <Text>
-                Checkout
-            </Text>
+    return  <View style={{justifyContent:'center',alignItems:'center',height:'100%'}}>
+              <Text style={{padding:20,textAlign:'center'}}>
+                  You request will be passed to Havellory .Once acceptance of request you can track your driver location in realtime
+              </Text>
+              <RoundButton size={20} color={'#fff'} background={'#8a2be2'} width={'100%'} onPress={
+                ()=>{
+                    console.log(props)
+                    
+                }
+            }>
+                Request Havelorry
+            </RoundButton>
     </View>
 }
 
-const BottomMenu = (props) => <Animated.View>
+const BottomMenu = (props) => <Animated.View style={{
+    opacity:props.opacity
+}}>
     {
         props.mapset ?
         props.bothSet
@@ -225,7 +236,10 @@ const BottomMenu = (props) => <Animated.View>
             <SearchRow 
                 icon ={'search'}
                 title = {'Search Destination'}
-                callback={value.toggle}
+                callback={()=>{
+                    value.toggle()
+                    props.setMapOptions()
+                }}
             />
             <IconRow 
             icon={'home'}
@@ -284,7 +298,9 @@ function SetMapView(props){
             <View style={{marginLeft:20}}>
                 <Text>Location</Text>
                 <Text style={{fontSize:16,fontWeight:'bold'}}>
-                    {JSON.stringify(props.current)}
+                    {
+                        props.current.text || `${latitude},${longitude}`
+                    }
                 </Text>    
             </View>
             </View>
@@ -294,10 +310,10 @@ function SetMapView(props){
             <RoundButton size={20} color={'#fff'} background={'#8a2be2'} width={'100%'} onPress={
                 ()=>{
                     console.log(props.actionType)
-                    const {latitude,longitude} = props.current
+                    const {latitude,longitude,text} = props.current
 
                     props.setLocation(props.actionType,{
-                        text:"",
+                        text,
                         coords:{
                             latitude,
                             longitude
@@ -346,28 +362,89 @@ class DriverMap extends React.Component{
         this.toggleMap = this.toggleMap.bind(this)
         this.fetchQueries = this.fetchQueries.bind(this)
         this.delayQueries = debounce(this.fetchQueries,1000)
+        this.fetchCurrentAddress = this.fetchCurrentAddress.bind(this)
+        this.fetchDelayedAddress = debounce(this.fetchCurrentAddress)
+        this.animValue = new Animated.Value(0)
+        this.fetchCoordinates = this.fetchCoordinates.bind(this)
+        this.animate = this.animate.bind(this)    
     }
 
 
+    animate(easing){
+        this.animValue.setValue(0)
+        Animated.timing(this.animValue,{
+            toValue:1,
+            duration:1000,
+            easing
+        }).start()
+    }
+
     toggleMap(){
         this.setState(state=>({...state, mapset:!state.mapset}))
+        this.animate(Easing.cubic)
+    }
+
+    fetchCoordinates(placeId,text,origin=false){
+        fetch(placeId).then(res=>res.json())
+        .catch(err => console.log(err))
+        .then(json => {
+            const {geometry:{location:{lat:latitude,lng:longitude}}} = json.result
+             passed = this.props.dispatch({
+                type:origin?SET_ORIGIN:SET_DEST,
+                payload:{
+                    text,
+                    coords:{
+                        latitude,
+                        longitude
+                    }
+                }
+            })
+
+            console.log(passed)
+
+            this.props.dispatch({type:RESET_SUGGESSTIONS})
+        })
+        .catch(err => console.log(err))
     }
 
     fetchQueries(value){
         if (value.length> 0) {
-            
             fetch(formatQuery(value)).then(
                 r => r.json()
             ).catch(err => console.log(err))
              .then(json => {
-                 const suggesstions = json.predictions.map(({description,id})=>({description,id}))
-                this.props.dispatch({
+                 console.log(json.predictions)
+                 const suggesstions = json.predictions.map(({description,place_id})=>({description,id:place_id}))
+                this.props.dispatch({   
                     type:SET_SUGGESSTIONS,
                     payload:suggesstions
                 })
              })
              .catch(err => console.log(err))
         }   
+    }
+
+    fetchCurrentAddress(region){
+        fetch(formatCoordinates(region)).then(
+            r=>r.json()
+        ).catch(err => console.log(err))
+        .then(
+            json => {
+                const {results} = json
+                if (results.length > 0) {
+                    const text = results[0]['formatted_address']
+                    const {geometry:{location:{lat:latitude,lng:longitude}}} = results[0]
+                    this.props.dispatch({type:SET_CURRENT_LOCATION,payload:{
+                        text,
+                        coords:{
+                          latitude,
+                          longitude             
+                        },
+                        set:true
+                    }})
+                }
+            }
+        ).catch(err=>console.log(err))
     }
 
     async componentDidMount(){
@@ -377,11 +454,19 @@ class DriverMap extends React.Component{
         },(err)=>{
             console.log(err)
         })
+
+        this.animate(Easing.bounce)
     }
 
     render(){
+
+        const opacity = this.animValue.interpolate({
+            inputRange:[0,1],
+            outputRange:[0,1]
+        })
+
         const {mapset} = this.state
-        console.log(this.props)
+        console.log('>>>>>'+JSON.stringify(opacity))
                 
         return <View style ={{
                         width:dims.width,
@@ -420,7 +505,7 @@ class DriverMap extends React.Component{
                                             onRegionChangeComplete ={
                                                 (region) => {
                                                     value.c(region)
-                                                    this.props.setCurrentLocation(region.latitude.toFixed(3), region.longitude.toFixed(3))
+                                                    this.fetchDelayedAddress(region)
                                                 }
                                             }
                                             />
@@ -486,10 +571,6 @@ class DriverMap extends React.Component{
                   {<OvalButton size={50} onPress={
                         ()=>{
                             this.toggleMap();
-                            this.setState({
-                                ...this.state,
-                                mapset:true
-                            })
                         }
                         
                     } bg="#fff" >
@@ -506,7 +587,17 @@ class DriverMap extends React.Component{
                 <BottomMenu mapset={mapset} enableMap= {
                     ()=> this.toggleMap()
                 } 
-                
+                opacity={opacity}
+                setMapOptions ={
+                    ()=> {
+                        this.setState(
+                            state => ({
+                                ...state,
+                                mapset:true
+                            })
+                        )
+                    }
+                }
                 {...this.props}
                 />
 
@@ -515,12 +606,13 @@ class DriverMap extends React.Component{
                         {
                             value => (
                                 <AppModel visible={value.open} close={value.toggle}>
-                                    <SearchView queryHandler={this.delayQueries}/>
+                                    <SearchView 
+                                        queryHandler={this.delayQueries}/>
                                     <IconRow 
                                         icon={'home'}
                                         title={'Home'}
                                         />
-                                    <Suggessions/>
+                                    <Suggessions handler={this.fetchCoordinates} OriginSet={this.props.originSet}/>
                                 </AppModel>
                             )
                         }
