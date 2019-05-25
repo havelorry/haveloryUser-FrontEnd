@@ -25,7 +25,10 @@ const initialState = {
         set:false
     },
 
-    current:{},
+    current:{
+        latitude:0,
+        longitude:0
+    },
     markers:[],
     suggessions:[]
 
