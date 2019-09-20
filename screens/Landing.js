@@ -138,7 +138,9 @@ class Landing extends React.Component{
 
                     <View style={{justifyContent:'center',alignItems:'center',backgroundColor:'transparent'}}>
                         <Link>
-                            Open driver app
+                            {
+                                t('Open driver app')
+                            }
                         </Link>
                     </View>
                 </View>
