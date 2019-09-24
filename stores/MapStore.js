@@ -31,6 +31,10 @@ const Proto = types.model({
     fix(){
         self.fixed =true
     }
+})).views(self  =>({
+    get fixedLocation(){
+        return self.fixed;
+    }
 }))
 
 /* 
@@ -58,7 +62,7 @@ const MapState = types.model({
     },
     updateDestination(x,y,text){
         self.destination.update(x,y,text)
-        self.destination.fix()
+        self.destination.fix();
     },
 
     chooseDriver(drv){
@@ -130,13 +134,15 @@ const MapState = types.model({
 
 
 })).views(self=>({
+
     get ui(){
-        if (self.origin.fixed && self.destination.fixed) {
+        console.log({"origin":self.origin.fixedLocation,"dest":self.destination.fixedLocation});
+        if (self.origin.fixedLocation && self.destination.fixedLocation) {
             if(self.driverChoosen){
                 return 4
             }
 
-            if (self.currentLocation.fixed) {
+            if (self.currentLocation.fixedLocation) {
                 return 3
             } else {
                 
@@ -144,11 +150,11 @@ const MapState = types.model({
             return 1
         }
 
-        if (self.origin.fixed) {
+        if (self.origin.fixedLocation) {
             return 2
         }
 
-        if (self.destination.fixed) {
+        if (self.destination.fixedLocation) {
             return 1
         }
 

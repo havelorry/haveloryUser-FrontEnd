@@ -312,7 +312,8 @@ class DestinationSelector extends Component{
           const {geometry:{location:{lat:latitude,lng:longitude}}} = json.result
           const {map,suggession} =this.props
           const {actionType} = this.state
-
+          console.log({actionType});
+          
           if (actionType=='ORIGIN') {
             map.updateOrigin(latitude,longitude,text)
           } else {
@@ -628,22 +629,21 @@ function ProductUI(props){
 
 const ProductView = inject('map')(observer(withNavigation(ProductUI)))
 
-const DestinationUI = DestinationSelector
 
 function Ui(props){
     const {map} = props
     console.log('====================================');
     console.log('UIVIEW'+ map.ui);
-    console.log(props.navigation.getScreenProps());
+    console.log(map.ui);
     console.log('====================================');
-    
-    
+    console.log("---------------------------------");
+    console.log({"MAP STATUS NOT CHANGNG":map.ui})
     switch (map.ui) {
         case 0:
         case 2:
-            return <DestinationUI map={map} {...props} /> /* replace with DestinationSelector when done */
+            return <DestinationSelector {...props} /> /* replace with DestinationSelector when done */
         case 1:
-            return <OriginSelector map={map} {...props}/>
+            return <OriginSelector {...props}/>
         case 3:
             return <ProductView {...props} />    
         
@@ -653,7 +653,7 @@ function Ui(props){
     }
 }
 
-const UiView = inject('map')(observer(withNavigation(Ui)))
+const UiView = withNavigation((inject('map')(observer(Ui))))
 
 class App extends Component {
   state = {
