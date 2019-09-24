@@ -122,7 +122,7 @@ class NotificationView extends React.Component{
             leftComponent={{ icon: 'menu', color: '#fff',onPress:()=>{
                 this.props.navigation.toggleDrawer()
             } }}
-            centerComponent={{ text: 'Notifications', style: { color: '#fff' } }}
+            centerComponent={{ text: this.props.navigation.getScreenProps().t('notifications'), style: { color: '#fff' } }}
             rightComponent={{ icon: 'home', color: '#fff',onPress:()=>{
                 this.props.navigation.navigate('Ride')
             } }}
@@ -148,7 +148,9 @@ class NotificationView extends React.Component{
         }
 
         <ListItem 
-            title={'Enable Notifications'}
+            title={
+                this.props.navigation.getScreenProps().t('allowpush')
+            }
             bottomDivider={true}
             topDivider={true}
             rightElement={

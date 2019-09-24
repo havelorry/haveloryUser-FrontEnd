@@ -85,7 +85,7 @@ class RideDetail extends React.Component{
         console.log(ride);
         console.log('====================================');
         const {update} = this.state
-
+        const {t} = this.props.navigation.getScreenProps()
         return <View>
         <FlatList 
             keyExtractor ={(item,index) => index.toString()}
@@ -106,7 +106,7 @@ class RideDetail extends React.Component{
         style={{height:40}}
         color={'#6f8ca5'}
         disabled={this.props.rides.controlDisabled} 
-        title={ update ? 'loading ...':'Complete'}
+        title={ update ? '...':t('complete')}
         
         onPress={
             () => {
@@ -124,7 +124,7 @@ class RideDetail extends React.Component{
        <Button
         style={{height:40}}
         disabled = {this.props.rides.controlDisabled} 
-        title={update ? 'loading ...':'Cancel'}
+        title={update ? '...':t('cancel')}
         color={'#d00'}
         onPress={
             ()=> {
@@ -143,8 +143,10 @@ class RideDetail extends React.Component{
 }
 
 
-RideDetail.navigationOptions = {
-    title:'Ride Details'
+RideDetail.navigationOptions = ({navigation}) =>{
+    return {
+        title:navigation.getScreenProps().t('Ride Details')
+    }
 }
 
 const RideWithState = inject('rides')(observer(RideDetail))

@@ -8,8 +8,7 @@ import {inject,observer} from "mobx-react"
 import {NavigationEvents} from "react-navigation"
 
 class History extends React.Component {
-
-
+    
     render(){
         const {rides:rds} = this.props
         const {rides:history,loading} = rds
@@ -91,7 +90,7 @@ class History extends React.Component {
 }
 
 History.navigationOptions = ({navigation}) =>({
-    title:'Ride History',
+    title:navigation.getScreenProps().t('rideHistory'),
     headerLeft:<View style={{marginLeft:11}}>
         <FontAwesome name={'arrow-left'} size={18} onPress={
         (e)=>{

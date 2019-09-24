@@ -153,10 +153,11 @@ function BorderedView(props){
 }
 
 
-function SearchView(props){
+const SearchView  =  withNavigation((props)  =>{
+  const  {t} =  props.navigation.getScreenProps()
   return <View>
       <BorderedView>
-          <InputRow title={'start'} color={'#8a2be2'} placeholder={props.originTxt ||'unnamed road'}
+          <InputRow title={t('start')} color={'#8a2be2'} placeholder={props.originTxt ||'unnamed road'}
            callback={
                (value) => {
                    props.handleOrigin(value)
@@ -168,7 +169,7 @@ function SearchView(props){
              props.onfocusOrigin
            }
           />
-          <InputRow title={ 'end'} color={'#fa2be2'} placeholder={props.destinationTxt ||'unnamed road'} 
+          <InputRow title={ t('end')} color={'#fa2be2'} placeholder={props.destinationTxt ||'unnamed road'} 
               callback={
                   (value) => {
                       props.handleDest(value)
@@ -181,7 +182,7 @@ function SearchView(props){
           />
       </BorderedView>
   </View>
-}
+})
 
 /* origin selector */
 class OriginUI extends React.Component{ 
@@ -324,6 +325,8 @@ class DestinationSelector extends Component{
       })
       .catch(err => console.log(err))
   }
+
+  
 
   fetchQueries(value){
       this.props.suggession.setLoading(true)
@@ -625,7 +628,7 @@ function ProductUI(props){
 
 const ProductView = inject('map')(observer(withNavigation(ProductUI)))
 
-const DestinationUI = withNavigation(DestinationSelector)
+const DestinationUI = DestinationSelector
 
 function Ui(props){
     const {map} = props
@@ -638,7 +641,7 @@ function Ui(props){
     switch (map.ui) {
         case 0:
         case 2:
-            return <DestinationUI map={map}  /> /* replace with DestinationSelector when done */
+            return <DestinationUI map={map} {...props} /> /* replace with DestinationSelector when done */
         case 1:
             return <OriginSelector map={map} {...props}/>
         case 3:
@@ -722,6 +725,11 @@ loadNRegister = (value) =>{
 
   componentDidMount() {
     this._getLocationAsync();
+  }
+
+  componentWillReceiveProps(nextProps, nextState){
+    console.log('New data');
+
   }
 
   Connect(){
@@ -812,7 +820,6 @@ loadNRegister = (value) =>{
 
         })
 
-        console.log('====================================');
         console.log('====================================');
         
       }

@@ -72,7 +72,9 @@ export default class SideMenu extends React.Component {
                                 this.props.navigation.navigate('Settings')
                             }
                         }>
-                        View Profile
+                        {
+                            this.props.navigation.getScreenProps().t('editProfile')
+                        }
                         </Link>    
                     </View>
                     <DrawerItems {...this.props} />

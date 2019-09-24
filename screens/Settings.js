@@ -19,7 +19,8 @@ class SettingsScreen extends React.Component{
         super(props)
         this.state = {
             profile:{},
-            uploading:false    
+            uploading:false ,
+            updated:false   
         }
         //this.props.navigation.getScreenProps().setLocale('ar')
     }
@@ -29,6 +30,12 @@ class SettingsScreen extends React.Component{
         return {
             ...navigation,
             header:null
+        }
+    }
+
+    componentDidUpdate(){
+        if (this.state.updated== false) {
+            this.setState({updated:true})
         }
     }
 
@@ -55,6 +62,7 @@ class SettingsScreen extends React.Component{
         })
         
     }
+    
     
 
     uploadToServer = ({uri}) => {
@@ -235,10 +243,20 @@ class SettingsScreen extends React.Component{
                  <Picker 
                  style={{width:200}}
                  selectedValue={this.props.navigation.getScreenProps().locale}
+                 //value={this.props.navigation.getScreenProps().locale}
                  onValueChange={
-                     (itemValue) =>{
+                     (itemValue,index) =>{
                         this.props.navigation.getScreenProps().setLocale(itemValue)
-                        this.props.navigation.navigate('Ride')                 
+                        //this.props.navigation.setParams({'langChanged':true})
+                        if(this.state.updated){
+                            this.props.navigation.navigate('loader')
+                        }                 
+                     }
+                 }
+
+                 onTouchStart={
+                     ()=>{
+                        this.setState({updated:true})
                      }
                  }
                  >
