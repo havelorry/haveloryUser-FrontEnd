@@ -626,11 +626,15 @@ function ProductUI(props){
 const ProductView = inject('map')(observer(withNavigation(ProductUI)))
 
 const DestinationUI = withNavigation(DestinationSelector)
+
 function Ui(props){
     const {map} = props
     console.log('====================================');
     console.log('UIVIEW'+ map.ui);
+    console.log(props.navigation.getScreenProps());
     console.log('====================================');
+    
+    
     switch (map.ui) {
         case 0:
         case 2:
@@ -646,7 +650,7 @@ function Ui(props){
     }
 }
 
-const UiView = inject('map')(observer(Ui))
+const UiView = inject('map')(observer(withNavigation(Ui)))
 
 class App extends Component {
   state = {

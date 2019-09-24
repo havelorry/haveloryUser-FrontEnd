@@ -1,5 +1,5 @@
 import React from "react"
-import {View,AsyncStorage,Text,FlatList,Button} from "react-native"
+import {View,AsyncStorage,Picker,FlatList,Button,Text} from "react-native"
 import { APP_URL } from "../constants/API";
 import {DocumentPicker} from "expo"
 import { Header,ListItem,Image } from "react-native-elements";
@@ -8,7 +8,6 @@ import {NavigationContextConsumer} from "./../navigation/NavigationContext"
 import * as Animatable from 'react-native-animatable';
 
 import {FontAwesome as Icon} from "@expo/vector-icons"
-import * as Localization from "expo-localization";
 
 function transformInput(value){
     return value.indexOf('_') > -1 ? value.split('_').join(' ') :value 
@@ -22,11 +21,15 @@ class SettingsScreen extends React.Component{
             profile:{},
             uploading:false    
         }
+        //this.props.navigation.getScreenProps().setLocale('ar')
     }
 
     
-    static navigationOptions = {
-        header:null
+    static navigationOptions = ({navigation}) =>{
+        return {
+            ...navigation,
+            header:null
+        }
     }
 
     pullProfile =() =>{
@@ -121,12 +124,15 @@ class SettingsScreen extends React.Component{
     }
 
     render(){
+        const  {t} =  this.props.navigation.getScreenProps()
 
         const {profile} = this.state
         console.log('=============RNDR=======================');
         
         const {user} = profile
         console.log(user);
+        
+       
         console.log('====================================');        
         const fields = [
             {
@@ -141,12 +147,6 @@ class SettingsScreen extends React.Component{
                 active:profile.email_verified,
                 icon:'email'
             },
-            {
-                key:'Language',
-                value:this.props.navigation.getScreenProps().locale,
-                icon:'language'
-            },
-
             {
                 key:'First Name',
                 value:profile.hasOwnProperty('firstName') ? profile.firstName :'edit',
@@ -164,8 +164,9 @@ class SettingsScreen extends React.Component{
 
         console.log('====================================');
         console.log(`${APP_URL}${profile.profilePic}`);
+        console.log(this.props.navigation.getScreenProps().locale);
         console.log('====================================');
-
+        
         return (<View style={{flex:1}}>
             <NavigationEvents 
             onDidFocus={
@@ -178,7 +179,7 @@ class SettingsScreen extends React.Component{
                 leftComponent={{ icon: 'menu', color: '#fff',onPress:()=>{
                     this.props.navigation.toggleDrawer()
                 }}}
-                centerComponent={{ text: 'Profile', style: { color: '#fff' } }}
+                centerComponent={{ text: t('profile'), style: { color: '#fff' } }}
                 rightComponent={{ icon: 'home', color: '#fff',onPress:(()=>{
                     this.props.navigation.navigate('Ride')
                 }) }}
@@ -228,6 +229,25 @@ class SettingsScreen extends React.Component{
                 </NavigationContextConsumer>
             </View>
 
+            <ListItem 
+             title={'Language'}
+             rightElement={
+                 <Picker 
+                 style={{width:200}}
+                 selectedValue={this.props.navigation.getScreenProps().locale}
+                 onValueChange={
+                     (itemValue) =>{
+                        this.props.navigation.getScreenProps().setLocale(itemValue)
+                        this.props.navigation.navigate('Ride')                 
+                     }
+                 }
+                 >
+                    <Picker.Item label={'English'} value={'en'}/>
+                    <Picker.Item label={'Arabic'} value={'ar'}/>   
+                 </Picker>
+             }
+            
+            />        
             <FlatList 
                 keyExtractor = {(item,index)=> index.toString()}
                 data={fields}
@@ -240,6 +260,7 @@ class SettingsScreen extends React.Component{
                         }}
                         leftIcon={{name:item.icon,color:'#000'}}
                         rightIcon={item.hasOwnProperty('active')? {name:'check-circle',color:item.active?'#0d0':'#000'} :null}
+                        rightElement={item.element && item.element}
                         onPress ={()=>{
                             if (['First Name','Last Name'].includes(item.key)) {
                                 this.props.navigation.navigate('PDetails',{
@@ -248,10 +269,8 @@ class SettingsScreen extends React.Component{
                                 })
                             }
 
-                            if (['Language'].includes(item.key)) {
+                            if (['Language'].includes(item.key)) {                                
                                 
-                                    this.props.navigation.getScreenProps().setLocale('ar')
-                                    this.props.navigation.navigation('Dashboard')
                             }
                         }}
                         

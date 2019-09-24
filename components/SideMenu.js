@@ -16,8 +16,6 @@ function TitleComponent(props) {
 
 
 
-
-
 export default class SideMenu extends React.Component {
 
     constructor(props){
@@ -29,6 +27,7 @@ export default class SideMenu extends React.Component {
          console.log(this.props.navigation.state) 
          console.log('====================================');  
     }
+
 
     render(){
         return <View>

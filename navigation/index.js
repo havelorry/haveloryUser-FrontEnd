@@ -27,7 +27,7 @@ import * as Localization from "expo-localization"
 
 //i18n.fallbacks = true
 i18n.translations = {
-    en,ar,"en-IN":en
+    en,ar
 }
 const AuthStack = createStackNavigator({
     loader:Loader,
@@ -79,21 +79,26 @@ const RideStack = createStackNavigator({
 const Home = createDrawerNavigator({
     Ride:{
         screen:HMapView,
-        navigationOptions:{
-            drawerLabel:i18n.t('Createride'),
-            drawerIcon:({tintColor}) =><Icon name={'cab'} size={20} color={tintColor} />
-
+        navigationOptions:({navigation}) =>{
+            const {t} = navigation.getScreenProps()
+            return {
+                drawerLabel:t('Createride'),
+                drawerIcon:({tintColor}) =><Icon name={'cab'} size={20} color={tintColor} />
+            }
         }
     },
     
     Notifications:{
         screen:NotificationView,
-        navigationOptions:{
-            drawerLabel:i18n.t('notifications'),
-            drawerIcon:({tintColor}) =><Icon name={'bell'} size={20} color={'black'}
-             />,
-
-             title:i18n.t('notifications')
+        navigationOptions:({navigation}) =>{
+            const {t} = navigation.getScreenProps()
+            return {
+                drawerLabel:t('notifications'),
+                drawerIcon:({tintColor}) =><Icon name={'bell'} size={20} color={'black'}
+                 />,
+    
+                 title:t('notifications')
+            }
         }
     },
     /*Invites:{
@@ -106,26 +111,35 @@ const Home = createDrawerNavigator({
     
     History:{
         screen:RideStack,
-        navigationOptions:{
-            drawerLabel:i18n.t('rideHistory'),
-            drawerIcon:({tintColor}) =><Icon name={'tags'} size={20} color={'black'} />,
-            title:i18n.t('rideHistory'),
+        navigationOptions:({navigation}) =>{
+            const {t} = navigation.getScreenProps()
+            return {
+                drawerLabel:t('rideHistory'),
+                drawerIcon:({tintColor}) =><Icon name={'tags'} size={20} color={'black'} />,
+                title:t('rideHistory'),
+            }
         }
     },
     
     Help:{
         screen:TestScreen,
-        navigationOptions:{
-            drawerLabel:i18n.t('help'),
-            drawerIcon:({tintColor}) =><Icon name={'envelope-o'} size={20} color={'black'} />
+        navigationOptions:({navigation}) =>{
+            const {t} =navigation.getScreenProps()
+            return {
+                drawerLabel:t('help'),
+                drawerIcon:({tintColor}) =><Icon name={'envelope-o'} size={20} color={'black'} />
+            }
         }
     },
 
     Settings:{
         screen:profileStack,
-        navigationOptions:{
-            drawerLabel:i18n.t('profile'),
-            drawerIcon:({tintColor}) =><Icon name={'cog'} size={20} color={'black'} />
+        navigationOptions:({navigation}) =>{
+            const  {t} = navigation.getScreenProps()
+            return {
+                drawerLabel:t('profile'),
+                drawerIcon:({tintColor}) =><Icon name={'cog'} size={20} color={'black'} />
+            }
         }
     },
 },{
@@ -138,20 +152,25 @@ const Home = createDrawerNavigator({
 const Switch = createSwitchNavigator({
     Auth:AuthStack,
     dashboard:Home
-},{
+},{ 
     initialRouteName:'Auth',
-    
 })
 
 const Navigator = createAppContainer(Switch)
  
  export class AppWithLocalization extends React.Component {
-    state = {
-      locale: Localization.locale.search('en')!= -1 ?'ar':'en',
-    };
+    constructor(props){
+        super(props)
+        this.state = {
+            locale: Localization.locale.search('en')!= -1 ?'en':'ar',
+        };
+    }
   
+    
     setLocale = locale => {
-      this.setState({ locale });
+        console.log(locale);
+        
+        this.setState({ locale });
     };
   
     t = (scope, options) => {
