@@ -482,6 +482,7 @@ function CheckOutUI(props){
     {key:'Source',value:details.origin_string},
     {key:'Destination',value:details.dest_string},
     {key:'Fare',value:`${details.fare} kd`},
+    {key:'workers',value:`${details.workers}`},
   ]
     return <ModelConsumer>
       {
@@ -523,6 +524,27 @@ function CheckOutUI(props){
                    }
                  }
               />
+
+              <View style={{height:10}}/>
+
+              <View style={{paddingHorizontal:10,justifyContent:'space-around',alignItems:'center',flexDirection:'row'}}>
+                 <Button 
+                  color={'#6f8ca5'}
+                  onPress={
+                    props.map.addWorker
+                  }
+                  title={'+1 worker'}
+                 />
+                 
+                 <Text>
+                   Workers :{details.workers}
+                 </Text>
+                 <Button 
+                  color={'#6f8ca5'}
+                  title={'-1 worker'}
+                  onPress={props.map.removeWorker}
+                 />
+              </View>
 
                 <Button 
                   onPress= {

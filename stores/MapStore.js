@@ -54,7 +54,9 @@ const MapState = types.model({
     userId:types.optional(types.string,""),
     is_scheduled:false,
     extra:types.optional(types.string,"NULL"),
-    requesting:false
+    requesting:false,
+    workers:types.optional(types.number,0),
+    fare:types.optional(types.number,15)
 }).actions(self=>({
     updateOrigin(x,y, text){
         self.origin.update(x,y,text)
@@ -130,6 +132,18 @@ const MapState = types.model({
               })
             console.log(err.message)
           })
+    },
+
+    addWorker(){
+        self.workers  = self.workers +1
+    },
+
+    removeWorker(){
+        if (self.workers  > 0) {
+            self.workers  = self.workers -1
+        }else{
+            console.log("No workers");
+        }
     }
 
 
@@ -172,8 +186,9 @@ const MapState = types.model({
             driver_id:self.driver,
             customer_id:self.userId || "2",
             status:1,
-            fare:200,
+            fare:self.fare + (self.workers  * 10),
             extra:self.extra,
+            workers:self.workers,
             is_scheduled:self.is_scheduled,
         }
     }
