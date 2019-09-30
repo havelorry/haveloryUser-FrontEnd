@@ -6,7 +6,8 @@ import { Text,FlatList ,
           Dimensions,Platform,
           TouchableOpacity,Easing,
           AsyncStorage,TextInput,Alert} from 'react-native';
-import { Constants, Location, Permissions, Notifications } from 'expo';
+import { Constants, Permissions, Notifications } from 'expo';
+import  {Location} from "expo-location"
 import {Bubbles} from "react-native-loader"
 import * as Animatable from "react-native-animatable"
 import { inject, observer } from 'mobx-react';
