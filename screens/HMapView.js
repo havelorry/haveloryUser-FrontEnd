@@ -546,6 +546,8 @@ function CheckOutUI(props){
                  />
               </View>
 
+              <View  style={{height:10}}/>
+            
                 <Button 
                   onPress= {
                       ()=>{
@@ -599,7 +601,7 @@ function CheckOutUI(props){
     </ModelConsumer>
 }
 
-const CheckOutSelector =  inject('map')(observer(withNavigation(CheckOutUI)))
+const CheckOutSelector =  inject('map')(withNavigation(observer(CheckOutUI)))
 
 function ProductUI(props){
     

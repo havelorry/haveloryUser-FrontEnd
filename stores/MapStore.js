@@ -135,7 +135,12 @@ const MapState = types.model({
     },
 
     addWorker(){
-        self.workers  = self.workers +1
+        if(self.workers < 3){
+            self.workers  = self.workers +1
+        }else{
+            console.log('cannot have more than 3workers');
+            
+        }
     },
 
     removeWorker(){
@@ -186,7 +191,7 @@ const MapState = types.model({
             driver_id:self.driver,
             customer_id:self.userId || "2",
             status:1,
-            fare:self.fare + (self.workers  * 10),
+            fare:self.fare + (self.workers  * 5),
             extra:self.extra,
             workers:self.workers,
             is_scheduled:self.is_scheduled,
