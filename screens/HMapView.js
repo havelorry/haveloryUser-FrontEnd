@@ -20,7 +20,7 @@ import { ListItem, Divider, Button, ButtonGroup } from 'react-native-elements';
 import MapView,{Polyline} from "react-native-maps"
 import { OvalButton } from "./../components/ButtonGroup";
 import DateTimePicker from 'react-native-modal-datetime-picker';
-import { inCircle } from '../components/distance';
+import { inCircle, mapDrivers} from '../components/distance';
 import {ModelConsumer} from "./../components/ModelContext"
 import {withNavigation} from "react-navigation"
 /* constants */
@@ -35,13 +35,14 @@ const CONTENT_HEIGHT = height/3-50
 // call in Two Arguments
 
 const filterDrivers = (drivers,point)  => {
-  return drivers.filter(driver => {
+  return mapDrivers(point,drivers)
+  /* return drivers.filter(driver => {
     const location = {
       latitude:driver.location.x,
       longitude:driver.location.y
     }
     return inCircle(location,point)
-  })
+  }) */
 }
 
 /* styles region*/
@@ -620,7 +621,7 @@ function ProductUI(props){
               renderItem={
                 ({item}) => <ListItem 
                     title={`HAVELLORY X ${item.workers}`}
-                    subtitle={`Number of workers ${item.workers} \n Pricing 10kd/km`}
+                    subtitle={`Number of workers ${item.workers} \n Pricing ${item.price} \n vehicle type: ${item.type}`}
                     bottomDivider={true}
                     leftIcon={
                       <FontAwesome name={'dot-circle-o'} color={'#6f8ca5'} size={32}/>
