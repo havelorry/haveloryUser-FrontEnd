@@ -56,7 +56,8 @@ const MapState = types.model({
     extra:types.optional(types.string,"NULL"),
     requesting:false,
     workers:types.optional(types.number,0),
-    fare:types.optional(types.number,15)
+    fare:types.optional(types.number,15),
+    checkinStatus:types.optional(types.number,0)
 }).actions(self=>({
     updateOrigin(x,y, text){
         self.origin.update(x,y,text)
@@ -95,8 +96,12 @@ const MapState = types.model({
         self.requesting = data
     },
 
+    checkinOut(status){
+        self.checkinStatus = status
+    },
+
     Checkout(data, func){
-        self.updateRequestStatus(true)
+        self.checkinOut(1)
         fetch(RideStatus,{
             method:'post',
             headers:{
@@ -111,6 +116,7 @@ const MapState = types.model({
             res => {
                 self.updateRequestStatus(false)
                 flow(function* (){
+                    self.checkinOut(0)
                     func()
                 })
 
@@ -126,7 +132,7 @@ const MapState = types.model({
               }    
             }
           ).catch(err => {
-              self.updateRequestStatus(false)
+            self.checkinOut(0)
               flow(function* (){
                 func()
               })
@@ -149,6 +155,10 @@ const MapState = types.model({
         }else{
             console.log("No workers");
         }
+    },
+
+    setFare(price){
+        self.fare = price
     }
 
 

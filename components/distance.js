@@ -1,10 +1,15 @@
 import isPointWithinRadius from 'geolib/es/isPointWithinRadius'
-import lib from "geolib"
+import  { getDistance } from "geolib"
 const CurryCircle = radius => (point1, point2) => isPointWithinRadius(point1,point2,radius)
 
-export  const calcDist = (point1,point2) => Math.abs(lib.getDistance(point1,point2))
+export  const calcDist = (point1,point2) => Math.abs(getDistance(point1,point2))
 
 const  getPrice =  (distance,price) => {
+    if (!distance) {
+        console.log("No price provided by  api");
+        
+        return price
+    }
     if (distance <= 7000) {
         return  price+10
     }else if (distance  >7000 && distance  <10000) {
@@ -23,7 +28,8 @@ export  const  mapDrivers = (userLoc,list)  =>  list.map((driver)=>{
     const distance =  calcDist(userLoc,location);
     return {
         ...driver,
-        price:getPrice(distance,price)
+        price:getPrice(distance,driver.price),
+        workers:0
     }
 })
 export const inCircle = CurryCircle(5000)

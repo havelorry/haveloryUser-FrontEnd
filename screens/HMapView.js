@@ -7,7 +7,7 @@ import { Text,FlatList ,
           TouchableOpacity,Easing,
           AsyncStorage,TextInput,Alert} from 'react-native';
 import { Constants, Permissions, Notifications } from 'expo';
-import  {Location} from "expo-location"
+import  *  as  Location from "expo-location"
 import {Bubbles} from "react-native-loader"
 import * as Animatable from "react-native-animatable"
 import { inject, observer } from 'mobx-react';
@@ -35,6 +35,8 @@ const CONTENT_HEIGHT = height/3-50
 // call in Two Arguments
 
 const filterDrivers = (drivers,point)  => {
+  console.log(drivers);
+  
   return mapDrivers(point,drivers)
   /* return drivers.filter(driver => {
     const location = {
@@ -305,7 +307,9 @@ class DestinationSelector extends Component{
     }
 
 
-    
+    initializeComponent  = data =>  {
+      console.log(data)
+    }
 
     fetchCoordinates(placeId,text,origin=false){
       fetch(placeId).then(res=>res.json())
@@ -354,15 +358,12 @@ class DestinationSelector extends Component{
       }   
   }
 
+  
 
     render(){
       const {t} = this.props.navigation.getScreenProps();
       const {loading,finished,values, processing} = this.props.suggession
       const {map}= this.props
-      console.log('====================================');
-      console.log('DESTINATION VIEW');
-      console.log(map)
-      console.log('====================================');
      
       return <Animated.View style={[fragmentStyles,{height:this.animatedValue}]}>
             {
@@ -417,6 +418,7 @@ class DestinationSelector extends Component{
               />
               :
               <SearchRow  onPress ={() => {
+                this.initializeComponent(this.props.region)
                 this.expand()
               }} title={t('search destination')}/>
 
@@ -567,7 +569,10 @@ function CheckOutUI(props){
 
               <View  style={{height:10}}/>
             
-              <Button 
+              {
+                props.map.checkinStatus ==0 
+                ?
+                <Button 
                   onPress= {
                       ()=>{
                         console.log('====================================');
@@ -580,11 +585,8 @@ function CheckOutUI(props){
                             }, ()=>{
                               toggle(false)
                             })
-                            /*
-                            Checkout({
-                              ...props.map.payload(),
-                              customer_id:username
-                            })*/
+                            
+                            
                           }
                         )
                         console.log('====================================');
@@ -594,7 +596,13 @@ function CheckOutUI(props){
                   color={'#6f8ca5'}
                   title={props.map.requesting ? 'requesting ...' :'Confirm'}
 
-              />    
+              />
+
+              :
+              <Animatable.View animation="rotate" iterationCount="infinite" easing="linear" >
+                <Icon name="refresh" size={props.size || 22} color={props.color || "#aaa"}/>
+            </Animatable.View>
+              }    
             </Animated.View>
 
            
@@ -629,7 +637,8 @@ function ProductUI(props){
 
                     onPress = {
                       ()=> {
-                        props.map.chooseDriver(parseInt(item.username_id))
+                        props.map.chooseDriver(parseInt(item.username))
+                        props.map.setFare(item.price)
                         console.log(props.map)
                       }
                     }
@@ -681,6 +690,11 @@ function Ui(props){
 
 const UiView = withNavigation((inject('map')(observer(Ui))))
 
+const compareCoordinates  = (region1,region2) =>{
+  const {latitude:lat1,longitude:lng1} = region1
+  const {latitude:lat2,longitude:lng2} = region2
+  return lat1.toFixed(3) == lat2.toFixed(3) && lng1.toFixed(3) == lng2.toFixed(3) 
+}
 class App extends Component {
   state = {
     mapRegion: null,
@@ -700,6 +714,7 @@ class App extends Component {
    */
 
 
+   
 
 loadToken = async () => {
      try{
@@ -790,66 +805,56 @@ loadNRegister = (value) =>{
     }
   }
   
+
+  preloadMap = ({latitude,longitude}) =>{
+    fetch(formatCoordinates({latitude,longitude}))
+       .then( r => r.json())
+       .catch(err => console.log(err))
+       .then(json => {
+         const {results} = json
+         const [result] = results
+         const {formatted_address} = result
+         this.props.map.updateLocation(latitude,longitude,formatted_address)
+         this.props.map.updateOrigin(latitude,longitude,formatted_address)
+         console.log('====================================');
+         console.log({results})
+         console.log('====================================');
+         if (this.props.map.destination.fixed) {
+           fetch(
+               FetchDirections(
+                 formatted_address,
+                 this.props.map.destination.text
+               )
+             ).then(
+               response => response.json() 
+             ).then(
+               respJson => {
+                 const path = PolyLine.decode(respJson.routes[0].overview_polyline.points).map(([latitude,longitude],index)=>({latitude,longitude}));
+                 this.setState(state =>({...state,path}))
+               }
+             ).catch(err => {
+               console.log(err)
+             })
+
+         }
+       })
+
+  }
+
   _handleMapRegionChange = mapRegion => {
-    
+  
     this.setState({ mapRegion });
-      const  {latitude, longitude} = mapRegion
-      const floatPoints = {
-        latitude:latitude.toFixed(3),
-        longitude:longitude.toFixed(3)
-      }
+    const areSame = compareCoordinates(this.state.mapRegion,mapRegion)
+      if (!areSame) {
+        /* 
+          initialize Component
+        */
+          this.preloadMap(mapRegion)
+              /* Initialize  ends */
 
-      const newRegion = this.state.mapRegion
-      const oldLat = parseFloat(newRegion.latitude).toFixed(3)
-      const oldLng = parseFloat(newRegion.latitude).toFixed(3)
-
-      const newLat = latitude.toFixed(3)
-      const newLng = longitude.toFixed(3)
-
-      if (newLat - oldLat==0 && newLng - oldLng==0) {
-        console.log('Equel coordinates making request is waste')
-      } else {
-        fetch(formatCoordinates(floatPoints))
-        .then( r => r.json())
-        .catch(err => console.log(err))
-        .then(json => {
-          console.log(
-            json
-          )
-          const {results} = json
-          const [result] = results
-          const {formatted_address} = result
-          this.props.map.updateLocation(latitude,longitude,formatted_address)
-          this.props.map.updateOrigin(latitude,longitude,formatted_address)
-          console.log('====================================');
-          console.log({results});
-          console.log('====================================');
-          if (this.props.map.destination.fixed) {
-            fetch(
-                FetchDirections(
-                  formatted_address,
-                  this.props.map.destination.text
-                )
-              ).then(
-                response => response.json() 
-              ).then(
-                respJson => {
-                  const path = PolyLine.decode(respJson.routes[0].overview_polyline.points).map(([latitude,longitude],index)=>({latitude,longitude}));
-                  this.setState(state =>({...state,path}))
-                }
-              ).catch(err => {
-                console.log(err)
-                console.log({floatPoints});
-                
-              })
-          }
-
-        })
-
-        console.log('====================================');
-        
-      }
-          
+      }else{
+        console.log('Dont Request');
+      }        
       
   };
 
@@ -884,6 +889,7 @@ _handleRemoteChange = () =>{
    let location = await Location.getCurrentPositionAsync({});
    this.setState({ locationResult: JSON.stringify(location),currenLocation:location });
    this._update(location.coords)
+   this.preloadMap(location.coords)
    this.setState(state=>({...state,
     initialLocation: { 
         latitude: location.coords.latitude,
@@ -904,18 +910,10 @@ _handleRemoteChange = () =>{
       res => res.json()
     ).then(
       driverMarkers => {
-        const markers =  driverMarkers.filter(({location:{
-          x:latitude,
-          y:longitude
-        }})=>{
-          return inCircle({ latitude,longitude},{ ...coords })
-        })
-
-        this.setState( state => ({...state,driverMarkers}))
-        console.log('====================================')
-        console.log('MARKERS IMPORTED')
-        console.log(markers)
-        console.log('====================================')}).catch(err => console.log(err))
+      markers  = mapDrivers(coords,driverMarkers)
+      this.setState({...this.state,driverMarkers:markers},()=>console.log("Markers  Available:"+JSON.stringify(driverMarkers)))  
+      })
+      .catch(err => console.log(err))
       
   }
 
@@ -934,7 +932,9 @@ componentWillUnmount() {
   render() {
 
     const {map} = this.props
-    const {driverMarkers}  = this.state 
+    const {driverMarkers}  = this.state
+    console.log(driverMarkers);
+     
     return (
       <View style={styles.container}>
 
@@ -1032,6 +1032,7 @@ componentWillUnmount() {
              drivers = {this.state.driverMarkers}
              onLoad={this._handleRemoteChange}
              resetPath={this._resetPath}
+             region={this.state.mapRegion}
              />
         </PlaceHolderView>
 
